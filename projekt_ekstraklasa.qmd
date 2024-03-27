@@ -1,0 +1,420 @@
+---
+title: "Analiza polskiej Ekstraklasy piłkarskiej"
+author: "Tymoteusz Romanowicz"
+language: polski.yml
+format: 
+  html:
+    warning: false
+    message: false
+    echo: false
+    self-contained: true
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Ekstraklasa - informacje ogólne
+
+**Ekstraklasa** (PKO BP Ekstraklasa) to najwyższa klasa rozgrywkowa męskiej piłki nożnej w Polsce. W obecnym formacie, rozgrywki składają się z 34 kolejek, w których mecze rozgrywają się w systemie "każdy z każdym". Każda para drużyn rozgrywa ze sobą dwa mecze - jeden u siebie i jeden na wyjeździe. Od dwóch sezonów w lidze tej gra 18 drużyn, natomiast wcześniej liczba ta wynosiła od 10 do 16. Aktualnie, do zespołów grających w tej lidze zaliczają się: Lechia Gdańsk, Pogoń Szczecin, Jagiellonia Białystok, Lech Poznań, Warta Poznań, Wisła Płock, Legia Warszawa, Widzew Łódź, Radomiak Radom, Zagłębie Lubin, Śląsk Wrocław, Miedź Legnica, Raków Częstochowa, Górnik Zabrze, Piast Gliwice, Korona Kielce, Cracovia Kraków oraz Stal Mielec.
+
+![Drużyny z Ekstraklasy na mapie, źródło: sport.tvp.pl](dru%C5%BCyny_z_ekstraklasy.png){fig-align="center" width="420"}
+
+## Pochodzenie piłkarzy
+
+Na ten moment, w Ekstraklasie gra 555 piłkarzy, z czego 355 (około 64%) to Polacy. Jest to dosyć przeciętna liczba w stosunku do innych europejskich lig; dla porównania, w lidze ukraińskiej 87,2% stanowią piłkarze ukraińskiego pochodzenia, natomiast w lidze angielskiej jedynie 32,6% wszystkich piłkarzy stanowią rodowici Anglicy.
+
+Obcokrajowcy grający w Ekstraklasie pochodzą z 55 państw. Najwięcej z nich przyjechało z Hiszpanii w liczbie 23. Najpopularniejszym z Hiszpanów jest grający w Rakowie Częstochowa **Ivi López**, którego wartość na rynku transferowym wynosi obecnie około 4 mln euro. Gra on na pozycji ofensywnego pomocnika i w sezonie 2021/2022 był królem strzelców Ekstraklasy. Innymi państwami, z których pochodzi duża część piłkarzy obcego pochodzenia jest Słowacja (18) i Portugalia (16), natomiast z reszty krajów pochodzi już do 10 zawodników. Na poniższym wykresie można jednak zauważyć, że piłkarze przyjeżdżali do Polski z najróżniejszych zakątków świata.
+
+```{r}
+#| label: fig-obcokrajowcy
+#| fig-cap: "Narodowość obcokrajowców grających w Ekstraklasie"
+
+library(tidyverse)
+library(ggplot2)
+library(viridis)
+
+ekstra <- read.csv("C:\\Users\\48503\\Desktop\\STUDIA\\SEMESTR 3\\R\\Projekt\\ekstraklasa.csv")
+
+
+## OBCOKRAJOWCY NA MAPIE ##
+rozmieszczenie <- ekstra %>% 
+  filter(`Pierwsza.narodowość`!="Poland") %>% 
+  select(`Pierwsza.narodowość`) %>% 
+  group_by(`Pierwsza.narodowość`) %>% 
+  summarise(liczba = n()) %>% 
+  rename(country = `Pierwsza.narodowość`)
+
+world <- map_data("world")
+
+world %>%
+  merge(rozmieszczenie, by.x = "region", by.y = "country", all.x = T) %>%
+  arrange(group, order) %>%
+  ggplot(aes(x = long, y = lat, group = group, fill = liczba)) +
+  geom_polygon(color = "white", size = 0.2) +
+  scale_fill_viridis("Liczba\nobcokrajowców", na.value = "gray90") +
+  theme_minimal() +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank(), 
+        legend.title = element_text(size = 10), 
+        legend.text = element_text(size = 10)) + 
+  theme(legend.position = "bottom")
+```
+
+Jeśli chodzi o przeszłość klubową, to zdecydowana większość graczy, bo aż 340 (61%), w swoim poprzednim klubie również grała w polskiej lidze. Można więc wywnioskować, że przewodniczący klubów najczęściej szukali wzmocnienia w klubach swoich rywali, w młodszych drużynach swojego lub obcego zespołu, lub w zespołach z niższych lig. W składach znajduje się również aż 17 piłkarzy którzy wcześniej byli "bezpańscy", czyli nie należeli do żadnego klubu.
+
+Najpopularniejszą zagraniczną ligą, z której przychodzili piłkarze była liga słowacka. Pochodzi z niej aż 17 piłkarzy. Czym może być spowodowany "trend na Słowaków"? W wywiadzie udzielonym w 2018 roku dla "Przeglądu Sportowego", Marcin Baszczyński, były dyrektor ds. sportowych klubu Bruk-Bet Termalika, udzielił następującej odpowiedzi:
+
+> "\[...\] Na Słowację czy też do Czech jest nam najbliżej \[...\]. Oni się u nas szybko aklimatyzują. Mamy podobny klimat, język i zbliżony poziom piłkarski. U nas jest lepsza organizacja rozgrywek i cała otoczka wokół nich. Mamy piękne stadiony. To wszystko sprawia, że zawodnicy z ekstraklasy słowackiej chętnie wybierają naszą ligę \[...\]."
+
+```{r}
+#| label: tbl-ligi
+#| tbl-cap: "Pierwsze 8 lig, z którch przeszło najwięcej piłkarzy"
+
+library(tidyverse)
+library(flextable)
+library(gt)
+
+ekstra <- read.csv("C:\\Users\\48503\\Desktop\\STUDIA\\SEMESTR 3\\R\\Projekt\\ekstraklasa.csv")
+
+tabelka_fin <- read.csv("C:\\Users\\48503\\Desktop\\STUDIA\\SEMESTR 3\\R\\Projekt\\kluby.csv")
+
+ekstra$Poprzedni.klub <- tabelka_fin$ekstra.Poprzedni.klub
+
+colnames(tabelka_fin) <- c("Pozycja", "Poprzedni klub", "Kraj poprzedniego klubu")
+
+ekstra$kraj_poprzedniego_klubu <- tabelka_fin$`Kraj poprzedniego klubu`
+
+ligi <- ekstra %>% 
+  select(kraj_poprzedniego_klubu) %>% 
+  group_by(kraj_poprzedniego_klubu) %>% 
+  summarise(liczba = n()) %>% 
+  filter(liczba>=10) %>% 
+  arrange(-liczba)
+
+colnames(ligi) <- c("Liga", "Liczba")
+
+
+
+ft <- flextable(ligi)
+ft <- width(ft, width = 3)
+ft
+```
+
+## Cechy piłkarzy
+
+### Wzrost
+
+Nierzadko mówi się, że podstawa dobrej obrony to wysocy obrońcy, ponieważ często walka o piłkę odbywa się w powietrzu. Dlatego stoperzy (środkowi obrońcy) **zawsze** stanowią filar obrony - biorą na siebie większość dośrodkowań i dyrygują resztą defensywy. Z tego właśnie powodu wydaje się, że muszą oni cechować się ponadprzeciętnym wzrostem.
+
+```{r}
+#| label: tbl-wzrost
+#| tbl-cap: "Tabela 2: Średni wzrost stoperów i gole stracone w sezonie 22/23 przez kluby"
+
+library(gt)
+library(formattable)
+library(tidyverse)
+
+ekstra$obecny_klub <- c(rep("Raków Częstochowa", 29), rep("Lech Poznań", 30), rep("Legia Warszawa", 27), rep("Pogoń Szczecin", 31), rep("Cracovia Kraków", 33), rep("Wisła Płock", 33), rep("Piast Gliwice", 31), rep("Lechia Gdańsk", 28), rep("Widzew Łódź", 27), rep("Jagiellonia Białystok", 35), rep("Zagłębie Lubin", 40), rep("Górnik Zabrze", 30), rep("Sląsk Wrocław", 35), rep("Warta Poznań", 26), rep("Stal Mielec", 25), rep("Radomiak Radom", 30), rep("Miedź Legnica", 35), rep("Korona Kielce", 30))
+
+stoperzy <- ekstra %>% 
+  filter(Pozycja=="Centre-Back") %>% 
+  group_by(obecny_klub) %>% 
+  summarise(Srednia=mean(Wzrost)) %>% 
+  select(obecny_klub, Srednia) %>% 
+  arrange(-Srednia) %>% 
+  mutate(Sredniawa=round(Srednia, 2)) %>% 
+  select(obecny_klub, Sredniawa) %>% 
+  arrange(-Sredniawa)
+
+stracone_gole <- c(15, 23, 26, 16, 12, 27, 28, 12, 30, 19, 22, 27, 25, 22, 22, 24, 26, 17)
+stoperzy$`Stracone gole` <- stracone_gole
+colnames(stoperzy) <- c("Klub", "Wzrost", "Stracone gole")
+
+#stoperzy %>% 
+  #formattable(list(`Stracone gole` = color_tile("pink", "red")))
+
+formattable(stoperzy, list(`Stracone gole` = color_tile("yellow", "red")),  align = c("c", "l", "c")) 
+
+
+#st <- gt(stoperzy)
+#st <- width(st, width = 4)
+#st %>% 
+  #tab_options(table.width = 500) %>% 
+
+
+
+```
+
+Powyższa tabela pokazuje, że wzrost środkowych obrońców to jednak nie wszystko. Co prawda Lech Poznań posiada najwyższych stoperów i stracił stosunkowo niewiele bramek, jednak Korona Kielce, plasująca w tym rankingu na trzecim miejscu, straciła aż 11 bramek więcej. Kolejną niespodzianką jest również fakt, iż Widzew Łódź ma najniższych stoperów w Ekstraklasie, a jednak stracił tylko dwa gole więcej niż Lech.
+
+### Lepsza noga
+
+\
+
+```{r}
+#| label: fig-lepszanoga
+#| fig-cap: "Lepsza noga u piłkarzy Ekstraklasy"
+
+library(tidyverse)
+
+ekstra <- read.csv("C:\\Users\\48503\\Desktop\\STUDIA\\SEMESTR 3\\R\\Projekt\\ekstraklasa.csv")
+
+ekstra %>% 
+  select(Lepsza.noga) %>% 
+  filter(Lepsza.noga=="right" | Lepsza.noga=="left" | Lepsza.noga=="both") %>% 
+  group_by(Lepsza.noga) %>% 
+  summarise(Liczba=n()) %>% 
+  ggplot(aes(x=Lepsza.noga, y=Liczba)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  geom_text(aes(label=Liczba), vjust=1, size=6)+
+  theme_minimal() + labs(x = "Lepsza noga", y = "Liczba")
+```
+
+W Ekstraklasie zdecydowana większość piłkarzy jest prawonożna, co nie jest wielkim zaskoczeniem. Stanowią oni ponad połowę wszystkich graczy. Niewielu jest piłkarzy obunożnych. Może to kogoś zdziwić, ponieważ generalnie uważa się, że każdy profesjonalny piłkarz powinien grać jednakowo dobrze lepszą i słabszą nogą. Mówimy tu jednak o prawdziwej obunożności, która spowodowana jest słabą lateralizacją (przewagą jednej strony ciała nad drugą). Zaburzenie to nie jest zbyt często spotykane, dlatego wyniki powyższego wykresu nie powinny dziwić. Ćwiczenie swojej słabszej nogi nadal jest ważne, jednak piłkarze zazwyczaj skupiają uwagę na opanowaniu do perfekcji gry lepszą nogą.
+
+### Wiek
+
+Piłkarze średnio kończą profesjonalną karierę piłkarską w wieku **35 lat**. Zdarzają się jednak jednostki, które potrafią grać w topowych klubach reprezentując pełnię swoich możliwości nawet w wieku 40 lat. Z wiekiem piłkarz staje się jednak coraz bardziej podatny na kontuzje i musi wiedzieć kiedy "zejść ze sceny", by kibice zapamiętali go jak najlepiej.
+
+```{r}
+#| tbl-cap: "Tabela 3: Pięciu nastarszych piłkarzy w Ekstraklasie"
+
+
+library(tidyverse)
+library(flextable)
+
+ekstra <- read.csv("C:\\Users\\48503\\Desktop\\STUDIA\\SEMESTR 3\\R\\Projekt\\ekstraklasa.csv")
+
+ekstra$obecny_klub <- c(rep("Raków Częstochowa", 29), rep("Lech Poznań", 30), rep("Legia Warszawa", 27), rep("Pogoń Szczecin", 31), rep("Cracovia Kraków", 33), rep("Wisła Płock", 33), rep("Piast Gliwice", 31), rep("Lechia Gdańsk", 28), rep("Widzew Łódź", 27), rep("Jagiellonia Białystok", 35), rep("Zagłębie Lubin", 40), rep("Górnik Zabrze", 30), rep("Sląsk Wrocław", 35), rep("Warta Poznań", 26), rep("Stal Mielec", 25), rep("Radomiak Radom", 30), rep("Miedź Legnica", 35), rep("Korona Kielce", 30))
+
+najstarsi <- ekstra %>% 
+  select(Gracz, Pozycja, Urodziny, Pierwsza.narodowość, obecny_klub, Wiek) %>% 
+  filter(Wiek>35) %>% 
+  arrange(-Wiek)
+
+colnames(najstarsi) <- c("Gracz", "Pozycja", "Urodziny", "Obywatelstwo", "Klub", "Wiek")
+
+np <- flextable(najstarsi)
+np <- width(np, width = 1.5)
+np
+```
+
+Najstarszym piłkarzem grającym aktualnie w najwyższej polskiej lidze jest Leandro - Brazylijczyk na pozycji środkowego obrońcy (ang. *centre-back*) w klubie Stal Mielec. Na powyższej tabeli widnieje również nazwisko **Lukasa Podolskiego** - Niemca o polskich korzeniach, który pod koniec kariery wrócił do Polski, by pomóc swojemu byłemu klubowi - Górnikowi Zabrze - póki jeszcze jest w stanie prezentować dobry poziom piłkarski.
+
+### Lojalność
+
+Bardzo często piłkarze, którzy grają w jednym klubie przez większość swojej kariery, są ulubieńcami kibiców, ponieważ widać w nich pasję i poczucie przynależności do jednego, wybranego przez siebie miejsca.
+
+```{r}
+#| tbl-cap: "Tabela 4: Sześciu najlojalniejszych piłkarzy w Ekstraklasie"
+
+library(flextable)
+library(flextable)
+
+ekstra <- read.csv("C:\\Users\\48503\\Desktop\\STUDIA\\SEMESTR 3\\R\\Projekt\\ekstraklasa.csv")
+
+tabelka_fin <- read.csv("C:\\Users\\48503\\Desktop\\STUDIA\\SEMESTR 3\\R\\Projekt\\kluby.csv")
+
+ekstra$obecny_klub <- c(rep("Raków Częstochowa", 29), rep("Lech Poznań", 30), rep("Legia Warszawa", 27), rep("Pogoń Szczecin", 31), rep("Cracovia Kraków", 33), rep("Wisła Płock", 33), rep("Piast Gliwice", 31), rep("Lechia Gdańsk", 28), rep("Widzew Łódź", 27), rep("Jagiellonia Białystok", 35), rep("Zagłębie Lubin", 40), rep("Górnik Zabrze", 30), rep("Sląsk Wrocław", 35), rep("Warta Poznań", 26), rep("Stal Mielec", 25), rep("Radomiak Radom", 30), rep("Miedź Legnica", 35), rep("Korona Kielce", 30))
+
+ekstra$Poprzedni.klub <- tabelka_fin$ekstra.Poprzedni.klub
+
+colnames(tabelka_fin) <- c("Pozycja", "Poprzedni klub", "Kraj poprzedniego klubu")
+
+ekstra$kraj_poprzedniego_klubu <- tabelka_fin$`Kraj poprzedniego klubu`
+
+doswiadczenie <- ekstra %>% 
+  mutate(rok_dolaczenia = str_sub(Data.dołączenia, -4, -1)) %>% 
+  arrange(rok_dolaczenia) %>% 
+  filter(rok_dolaczenia!="-") %>% 
+  filter(rok_dolaczenia<=2016) %>% 
+  select(Gracz, obecny_klub, Pozycja, Urodziny, Wiek, Pierwsza.narodowość, Wzrost, Lepsza.noga, Data.dołączenia, Poprzedni.klub, Wartość.rynkowa)
+
+colnames(doswiadczenie) <- c("Gracz", "Obecny klub", "Pozycja", "Urodziny", "Wiek", "Obywatelstwo", "Wzrost", "Lepsza noga", "Data dołączenia", "Poprzedni klub", "Wartość")
+
+doswiadczenie <- doswiadczenie %>% 
+  select(Gracz, Pozycja, Urodziny, Wiek, Obywatelstwo, `Data dołączenia`, `Obecny klub`, Wartość)
+
+flextable(head(doswiadczenie))
+```
+
+Dziwnym zbiegiem okoliczności, najbardziej lojalny swojemu klubowi piłkarz Ekstraklasy nazywa się tak samo jak najstarszy piłkarz tej ligi, razem są też Brazylijczykami. Są to jednak dwaj różni piłkarze i ten, o którym teraz mowa gra na pozycji prawego skrzydłowego (ang. *right winger*) w Radomiaku Radom. Gra on tam już niecałe 11 lat i od początku swojej przygody w tym klubie jest istotnym ogniwem swojego zespołu.
+
+Lendro rozpoczął grę dla Radomiaka w sezonie 2011/2012, gdy klub ten był jeszcze w III lidze rozgrywkowej. Do Ekstraklasy awansował on wraz ze swoim zespołem zaledwie rok temu. W barwach swojego klubu rozegrał już ponad 300 meczów i strzelił ponad 120 goli, w sezonie 2017/2018 trafiając do siatki 20 razy. Dwukrotnie był królem strzelców II ligi. Jest przez swoich kibiców uważany za żywą legendę, a jego oddanie klubowi, który znajduję się bardzo daleko od miejsca urodzenia, z pewnością jest godne podziwu.
+
+![Plakat kibica Radomiaka dla Leandro](leandro.jpg){fig-align="center" width="315"}
+
+## Wartości klubów
+
+```{r}
+#| label: fig-wartosci
+#| fig-cap: "Wartości sześciu najlepszych obecnie klubów na przestrzeni lat 2011-2023"
+
+library(ggplot2)
+library(flextable)
+library(tidyverse)
+library(rvest)
+library(plotly)
+
+
+
+kluby <- c("Raków Częstochowa", "Lech Poznań", "Legia Warszawa", "Pogoń Szczecin", "Cracovia Kraków", "Wisła Płock", "Zagłębie Lubin", "Lechia Gdańsk", "Piast Gliwice", "Widzew Łódź", "Górnik Zabrze", "Jagiellonia Białystok", "Śląsk Wrocław", "Warta Poznań", "Radomiak Radom", "Stal Mielec", "Miedź Legnica", "Korona Kielce")
+zmiany_wartosci <- data.frame(kluby)
+
+zmiany_wartosci_fin = data.frame(matrix(nrow = 18, ncol = 2)) 
+colnames(zmiany_wartosci_fin) <- c("kluby", "V2")
+
+
+for(rok in 11:23) {
+  link <- paste0("https://www.transfermarkt.com/pko-ekstraklasa/marktwerteverein/wettbewerb/PL1/plus/?stichtag=20", rok, "-01-01")
+  strona <- read_html(link)
+  
+  wartosc <- strona %>% 
+    html_nodes("td.rechts a:nth-child(1)") %>% 
+    html_text()
+  
+  wartosc <- wartosc[c(TRUE, FALSE)]
+  
+  tysiace <- grep("k", wartosc)
+  miliony <- grep("m", wartosc)
+  
+  wartosc <- parse_number(wartosc)
+  
+  wartosc[tysiace] <- wartosc[tysiace]*1000
+  wartosc[miliony] <- wartosc[miliony]*1000000
+  wartosc <- wartosc/1000000
+  
+  zmiany_wartosci[2] <- wartosc
+  zmiany_wartosci_fin <- rbind(zmiany_wartosci_fin, zmiany_wartosci)
+}
+
+zmiany_wartosci_fin <- zmiany_wartosci_fin[-c(1:18), ]
+
+zmiany_wartosci_fin$year <- c(rep(2011, 18), rep(2012, 18), rep(2013, 18), rep(2014, 18), rep(2015, 18), rep(2016, 18), rep(2017, 18), rep(2018, 18), rep(2019, 18), rep(2020, 18), rep(2021, 18), rep(2022, 18), rep(2023, 18))
+
+colnames(zmiany_wartosci_fin) <- c("Klub", "Wartość", "Rok")
+
+
+
+do_tabelki <- zmiany_wartosci_fin %>% 
+  filter(Klub == "Raków Częstochowa" | Klub == "Legia Warszawa" | Klub == "Widzew Łódź" | Klub == "Pogoń Szczecin" | Klub == "Wisła Płock" | Klub == "Lech Poznań")
+
+wykres <- ggplot(do_tabelki, aes(x = Rok, y = Wartość, color = Klub)) +geom_line(size = 1) + theme(legend.position = "upper") + labs(x = "Rok", y = "Wartość(mln €)") + scale_x_continuous(n.breaks=13)
+
+
+
+ggplotly(wykres, tooltip = c("Klub", "Wartość"), dynamicTicks = T) %>% 
+  highlight(on = "plotly_hover", color = "red")
+```
+
+Na powyższym wykresie zaprezentowane zostało sześć klubów, które na ten moment zajmują pierwsze sześć miejsc w ekstraklasowej tabeli. Można tutaj dojrzeć pewną fascynującą rzecz. Raków Częstochowa, jeszcze 11 lat temu, był klubem o wartości około 500 tys. €. Od tamtej pory stale piął się pod tym względem w górę i teraz jest najbardziej wartościowym klubem polskiej ligi zaliczając między 2021 a 2023 rokiem skok w wartości o **ponad 20 mln €**. Do sukcesu niewątpliwie przyczynił się trener Marek Papszun, który przejął klub 18 kwietnia 2016 roku i od tamtej pory całkowicie odmienił drużynę na lepsze.
+
+## Ekstraklasa w porównaniu z innymi ligami
+
+### Gole na mecz
+
+Często można spotkać się ze stwierdzeniem, że mecze Ekstraklasy są nudne, monotonne i zbyt często kończą się bezbramkowymi remisami. Koneserzy futbolu powiedzieliby, że nawet mecz zakończony rezultatem 0-0 może dostarczyć wiele emocji, jednak przeciętny widz największą radość czerpie z zobaczenia wielu bramek na żywo. Mecze zakończone małą ilości goli często pozostawiają po sobie pewien niedosyt i zasiewają w głowie myśl: "a mogliśmy powalczyć o trzy punkty".
+
+```{r}
+#| label: fig-golenamecz
+#| fig-cap: "Statystyka średniej ilości goli na mecz w najlepszych ligach świata i Ekstraklasie"
+
+library(ggplot2)
+library(flextable)
+library(tidyverse)
+library(rvest)
+
+
+link_1 <- read_html("https://www.transfermarkt.com/wettbewerbe/europa/wettbewerbe?plus=1")
+
+nazwa_ligi <- link_1 %>% 
+  html_nodes(".inline-table a") %>% 
+  html_text()
+
+nazwa_ligi <- nazwa_ligi[c(FALSE, TRUE)]
+
+gole_na_mecz <- link_1 %>% 
+  html_nodes("td:nth-child(8) a") %>% 
+  html_text()
+
+gole_na_mecz <- c(gole_na_mecz[1:20], "", gole_na_mecz[21], "", gole_na_mecz[22:23])
+
+tabelka_1 <- data.frame(nazwa_ligi, gole_na_mecz)
+
+tabelka_1$gole_na_mecz <- as.numeric(tabelka_1$gole_na_mecz)
+
+
+tabelka_1$nazwa_ligi[4] <- "Bundesliga(niem.)"
+tabelka_1$nazwa_ligi[11] <- "Bundesliga(aus.)"
+
+
+
+
+wybrane_ligi <- c(tabelka_1$nazwa_ligi[1:9], tabelka_1$nazwa_ligi[18])
+
+tabella <- tabelka_1 %>% 
+  filter(nazwa_ligi %in% wybrane_ligi)
+ 
+ggplot(tabella, aes(x = reorder(nazwa_ligi, gole_na_mecz), y = gole_na_mecz, fill = ifelse(nazwa_ligi == "Ekstraklasa", "Highlighted", "Normal"))) + 
+  geom_bar(stat = "identity") + 
+  coord_flip() + 
+  geom_hline(yintercept=2.59,linetype=2) + labs(y = "Gole/mecz", x = "Liga") + 
+  geom_text(aes(label=gole_na_mecz), vjust=0.4, hjust=1.05, size=6) + 
+  theme(legend.position = "none") 
+```
+
+Na wyżej zamieszczonym wykresie widać, że w najlepszych ligach świata średnia goli na mecz jest znacznie wyższa niż w Ekstraklasie. W niemieckiej Bundeslidze średnio w meczu pada najwięcej bramek, natomiast nasza liga prezentuje się tutaj raczej słabo. Niespodzianką jest jednak to, że hiszpańska LaLiga prezentuje się tutaj nawet gorzej niż Ekstraklasa, a mimo to, cały świat stale jest żywo zainteresowany przebiegiem tamtejszych rozgrywek. Jest to jednak spowodowane nie tym, ile bramek pada w tamtejszych meczach, lecz tym, że są one wyjątkowo zacięte i nigdy nie wiadomo do samego końca która drużyna w końcu trafi do siatki i w ostatniej chwili "wyszarpie" trzy punkty. Z własnego doświadczenia wiem, że w Ekstraklasie bezbramkowe mecze przeważnie wyglądają zupełnie inaczej - albo jedna drużyna przejmuje inicjatywę a druga przez cały mecz się broni ustawiając w swoim polu karnym całą drużynę zabezpieczając się przed stratą bramki, albo obydwie drużyny wydają się być niezainteresowane zwycięstwem przez co mecz zdaje się ciągnąć bez końca. Można więc wywnioskować, że liczba goli jest ważnym elementem piłkarskiego widowiska, aczkolwiek mecz bez goli również może stać na wysokim poziomie i elektryzować kibiców.
+
+### Wartość w porównaniu z sąsiadami
+
+```{r}
+#| label: fig-sasiedzi
+#| fig-cap: "Wartości Ekstraklasy i lig z sąsiadujących z Polską państw"
+
+library(ggplot2)
+library(flextable)
+library(tidyverse)
+library(rvest)
+library(plotly)
+
+kluby_sasiedzi <- c("polska", "niemiecka", "czeska", "słowacka", "ukraińska", "białoruska", "litewska", "rosyjska")
+
+wartosci_sasiedzi <- c(241700000, 4220000000, 231550000, 78100000, 351180000, 53680000, 39730000, 757780000)
+wartosci_sasiedzi <- wartosci_sasiedzi/1000000
+
+sredni_klub <- c(13430000, 234480000, 14470000, 6510000, 21950000, 3580000, 3970000, 47360000)
+sredni_klub <- sredni_klub/1000000
+
+kluby_sasiedzi <- rep(kluby_sasiedzi, 2)
+
+sasiedzi <- data.frame(kluby_sasiedzi)
+
+sasiedzi$wartosc <- c(wartosci_sasiedzi, sredni_klub)
+
+
+sasiedzi$Statystyka <- c(rep("Wartość całkowita ligi", 8), rep("Średnia wartość klubu\ndanej ligi", 8))
+
+
+ggplot(sasiedzi, aes(x = reorder(kluby_sasiedzi, wartosc), y = wartosc, fill = Statystyka)) + geom_bar(stat = "identity", position = 'dodge') + facet_wrap(~Statystyka, scales = "free") + scale_x_discrete(guide = guide_axis(n.dodge=3)) + labs(x = "Liga", y = "Wartość (mln €)") + geom_text(aes(label=wartosc), vjust=-0.3, size=3) + theme(legend.position = "none")
+```
+
+Porównując wartość Ekstraklasy z ligami krajów sąsiadujących z Polską widać, że niemiecka Bundesliga bezkonkurencyjnie przewyższa wszystkie klasy rozgrywkowe brane pod uwagę w zestawieniu. Wartości dotyczące naszej ligi niewiele różnią się od wartości czeskiej Fortuna Ligi. Ciekawym faktem jest to, że liga białoruska ma większą wartość całkowitą niż liga litewska, jednak w zestawieniu średniej wartości klubów jest na odwrót. Jest to zapewne spowodowane tym, że w lidze białoruskiej zakontraktowanych jest o ponad 100 piłkarzy więcej.
+
+## Zakończenie
+
+Rozgrywki Ekstraklasy niestety nie cieszą się wysoką oglądalnością na całym świecie. Mecze reprezentują znacznie niższy poziom niż te w topowych ligach zagranicznych zespołów. Ma to również swoje odzwierciedlenie w statystykach dotyczących wartości całej ligi i poszczególnych klubów. Nie zmienia to jednak faktu, że dla wielu polskich kibiców jest ona źródłem fantastycznej rozrywki. Na mecze często przychodzą całe rodziny, a każdy klub ma grupkę swoich zagorzałych zwolenników, którzy wyrażają chęć wsparcia swojej ulubionej drużyny w każdym meczu: nieważne czy u siebie, czy na drugim końcu Polski.
+
+![Kibice Legii Warszawa podczas meczu](ultrasi.jpg){fig-align="center" width="594"}
+
+## Źródła:
+
+-   <https://www.transfermarkt.com/>
+
+-   <https://przegladsportowy.onet.pl/pilka-nozna/ekstraklasa/trwa-moda-na-slowacje-skad-trafia-do-nas-najwiecej-pilkarzy-analiza/1h72crv>
+
+-   <https://metodawarnkego.pl/metoda-warnkego/opis-i-przeznaczenie-metody/zaburzenia-lateralizacji/>
+
+-   <https://pl.wikipedia.org/wiki/Le%C3%A2ndro_Rossi>
+
+-   miniaturka filmu <https://www.youtube.com/watch?v=NQLXbWZJjrM>

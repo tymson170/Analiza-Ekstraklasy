@@ -1,0 +1,26 @@
+Wykresy:
+ - obcokrajowcy na mapie
+ - lepsze nogi
+ - gole na mecz z innymi ligami
+ - wartosc w porownaniu z ligami sąsiadów
+Tabelki:
+ - ligi z których są piłkarze
+ - najdłużej grający w jednym klubie piłkarze
+ - średnie wzrostu stoperów
+ - najstarsi zawodnicy
+
+
+Plan:
+1) Wprowadzenie - opis ekstraklasy
+2) Pochodzenie piłkarzy - ligi, kraje (obcokrajowcy na mapie, 
+				       ligi z których są piłkarze)
+3) Cechy piłkarzy - wzrost, lepsza noga, doświadczenie (lepsze nogi, 
+							najdłużej grający,   
+							średnie wzrostu,
+							najstarsi piłkarze
+							    *jak prezentował się
+							     najbardziej lojalny 
+							     piłkarz w swojej karierze)
+4) Porównanie Ekstraklasy z innymi ligami (wartość w porównaniu z sąsiadami,
+					   gole na mecz w porównaniu z top ligami)
+5) Podsumowanie		
